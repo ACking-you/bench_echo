@@ -1,0 +1,4 @@
+
+
+add_executable(netpoll_echo_server echo_server.cc)
+target_link_libraries(netpoll_echo_server netpoll)
