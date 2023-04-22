@@ -1,112 +1,82 @@
-threadNum:4 dataSize:16384(16kb)
+# BenchEcho
 
-<iframe src=".github/img/line.html" width="100%" height="500px"></iframe>
+这是一个用于测试 tcp echo服务的脚本,可以计算出每个连接进行一次echo服务的延迟,同样也可用该数据计算出吞吐量.
 
-## asio
+本项目用来测试 [netpoll](https://www.cloudwego.io/zh/docs/netpoll/)/[netpoll-cpp](https://github.com/ACking-you/netpoll-cpp)/[asio](https://www.boost.org/doc/libs/1_82_0/doc/html/boost_asio.html) 三个网络库的echo服务的性能.
 
-```
-100
-all echo sync:
-sum:1655333us
-average:16553us
-all echo async:
-sum:: 37482 us (37.482000 ms)
-average:374us
+## 运行
 
-400
-all echo sync:
-sum:12559570us
-average:31398us
-all echo async:
-sum:: 102964 us (102.964000 ms)
-average:257us
+测试需要的运行环境如下:
 
-700
-all echo sync:
-sum:44608110us
-average:63725us
-all echo async:
-sum:: 182567 us (182.567000 ms)
-average:260us
+* linux 系统(netpoll-go只支持Linux).
+* 请自行编译下载好 asio 库.
+* cmake(3.14及以上)和makefile和g++编译器.
+* go语言编译器.
 
-1000
-all echo sync:
-sum:81739084us
-average:81739us
-all echo async:
-sum:: 260477 us (260.477000 ms)
-average:260us
+想要运行测试只需要执行对应的下列脚本:
+
+* `build.sh` :用于编译用于测试的客户端脚本以及对应的 `netpoll/netpoll-cpp/asio` echo服务端.
+* `run_bench.sh` :用于测试本地对应端口的echo服务,需要传入四个参数,分别是 `端口/线程数/连接数/随机发送的数据长度` ,运行脚本有相应的提示.
+* `run_server.sh` :用于启动对应的echo服务,需要传入一个参数,这是需要启动的服务,共有 `netpoll-go/netpoll-cpp/asio` 这三个服务,分别占用 `9999/7777/8888` 三个端口.
+
+执行顺序如下:
+
+```shell
+./build.sh
+./run_server.sh
+./run_bench.sh
 ```
 
-## netpoll-cpp
+## 测试逻辑
 
-```
-100
-all echo sync:
-sum:234828us
-average:2348us
-all echo async:
-sum:: 22028 us (22.028000 ms)
-average:220us
+我本机的配置如下:
 
-400
-all echo sync:
-sum:9595661us
-average:23989us
-all echo async:
-sum:: 92396 us (92.396000 ms)
-average:230us
+* R7 4800U(8核16线程,主频1.80GHz)
+* 内存16GB
+* wsl2-ubuntu22.04LTS
 
-700
-all echo sync:
-sum:26274292us
-average:37534us
-all echo async:
-sum:: 162593 us (162.593000 ms)
-average:232us
+具体测试逻辑如下:
 
-1000
+1. 让客户端发送 `16KB` 的随机数据并开始计时.
+2. 接收数据发送的 `16KB` 数据,如果一次没有接收完那么就一直到接收到数据完整为止.
+3. 接收完毕后,停止计时并打印此次整个过程的耗时,并且把这次的事件加入到总时长(用于算每个连接的平均耗时).
+4. 断开连接.
+
+最后得到的测试打印结果会是下面这个样子:
+
+```toml
+#前面会有一大堆的时间打印,表示对应的单个连接echo服务的耗时
 all echo sync:
-sum:72968403us
-average:72968us
+sum:1655333us  #总耗时(将单个连接echo的耗时相加)
+average:16553us #平均耗时前面的总耗时/总连接数
 all echo async:
-sum:: 219975 us (219.975000 ms)
-average:219us
+sum:: 37482 us (37.482000 ms) #整个测试执行的总耗时(因为测试是基于IO多路复用和多线程的)
+average:374us #上面的总耗时/总连接数
 ```
 
-## netpoll-go
 
-```
-100
-all echo sync:
-sum:367403us
-average:3674us
-all echo async:
-sum:: 22499 us (22.499000 ms)
-average:224us
 
-400
-all echo sync:
-sum:10640202us
-average:26600us
-all echo async:
-sum:: 89207 us (89.207000 ms)
-average:223us
+## 测试结果
 
-700
-all echo sync:
-sum:27540333us
-average:39343us
-all echo async:
-sum:: 167611 us (167.611000 ms)
-average:239us
+整个测试的过程基于 `EventLoop` 的 IO 多路复用,一共开了4个 `EventLoop` 同时也对应着四个线程.
 
-1000
-all echo sync:
-sum:71772410us
-average:71772us
-all echo async:
-sum:: 212358 us (212.358000 ms)
-average:212us
-```
+模拟了 `100/400/700/1000` 个连接并发的情况,这已经是我本机能够并发的极限,再多的并发客户端就会产生无法处理的错误了.
 
+最终测试结果的图表如下图所示:
+
+![img](.github/img/line.png)
+
+对应的表数据下:
+
+| 连接数量/网络库 | asio              | netpoll-cpp       | netpoll           |
+| :-------------: | ----------------- | ----------------- | ----------------- |
+|       100       | 16553us(16.53ms)  | 2348us(2.348ms)   | 3674us(3.674ms)   |
+|       400       | 31398us(31.398ms) | 23989us(23.989ms) | 26600us(26.600ms) |
+|       700       | 63725us(63.725ms) | 37534us(37.534ms) | 39343us(39.343ms) |
+|      1000       | 81739us(81.739ms) | 72968us(72.968ms) | 71772us(71.772ms) |
+
+
+
+观察上述数据,我们发现 `netpoll` 在连接数多的情况下表现是最好的,同时我们也发现 `asio` 的表现明显不如其他两个库.
+
+这样的表现只是基于 `16KB` 数据的情况,如果数据量下降到 `1KB` 左右,我发现 `asio` 的表现是最好的,而 `netpoll` 表现是最差的.
