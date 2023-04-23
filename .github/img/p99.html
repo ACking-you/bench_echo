@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Awesome go-echarts</title>
+    <script src="https://go-echarts.github.io/go-echarts-assets/assets/echarts.min.js"></script>
+</head>
+
+<body>
+<div class="container">
+    <div class="item" id="SKcgTcRGxaQT" style="width:900px;height:500px;"></div>
+</div>
+
+<script type="text/javascript">
+    "use strict";
+    let goecharts_SKcgTcRGxaQT = echarts.init(document.getElementById('SKcgTcRGxaQT'), "white");
+    let option_SKcgTcRGxaQT = {"color":["#5470c6","#91cc75","#fac858","#ee6666","#73c0de","#3ba272","#fc8452","#9a60b4","#ea7ccc"],"dataset":{"source":null},"grid":[{"left":"10%","right":"10%","top":"18%","bottom":"15%","width":"80%","height":"65%"}],"legend":{"show":true,"type":""},"series":[{"name":"netpoll(go)","type":"line","smooth":false,"connectNulls":false,"showSymbol":false,"waveAnimation":false,"renderLabelForZeroData":false,"selectedMode":false,"animation":false,"data":[{"value":5196,"XAxisIndex":0,"YAxisIndex":0},{"value":34699,"XAxisIndex":0,"YAxisIndex":0},{"value":49105,"XAxisIndex":0,"YAxisIndex":0},{"value":87596,"XAxisIndex":0,"YAxisIndex":0}]},{"name":"netpoll-cpp(cpp)","type":"line","smooth":false,"connectNulls":false,"showSymbol":false,"waveAnimation":false,"renderLabelForZeroData":false,"selectedMode":false,"animation":false,"data":[{"value":4915,"XAxisIndex":0,"YAxisIndex":0},{"value":34597,"XAxisIndex":0,"YAxisIndex":0},{"value":50875,"XAxisIndex":0,"YAxisIndex":0},{"value":96940,"XAxisIndex":0,"YAxisIndex":0}]},{"name":"asio(cpp)","type":"line","smooth":false,"connectNulls":false,"showSymbol":false,"waveAnimation":false,"renderLabelForZeroData":false,"selectedMode":false,"animation":false,"data":[{"value":27420,"XAxisIndex":0,"YAxisIndex":0},{"value":39063,"XAxisIndex":0,"YAxisIndex":0},{"value":76095,"XAxisIndex":0,"YAxisIndex":0},{"value":100581,"XAxisIndex":0,"YAxisIndex":0}]}],"title":{"text":"echo服务延迟(p99)","subtext":"收发的包固定在16KB大小,内容随机,纵坐标是来回收发一次的延迟时间(越低越好)"},"tooltip":{"show":false},"xAxis":[{"name":"连接数量(个)","data":["100","400","700","1000"]}],"yAxis":[{"name":"微秒(us)"}]}
+;
+    
+	let action_SKcgTcRGxaQT = {"areas":{},"type":""}
+;
+    
+    goecharts_SKcgTcRGxaQT.setOption(option_SKcgTcRGxaQT);
+ 	goecharts_SKcgTcRGxaQT.dispatchAction(action_SKcgTcRGxaQT);
+</script>
+
+<style>
+    .container {margin-top:30px; display: flex;justify-content: center;align-items: center;}
+    .item {margin: auto;}
+</style>
+</body>
+</html>

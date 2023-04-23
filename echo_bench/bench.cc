@@ -3,8 +3,10 @@
 
 #include <atomic>
 #include <iostream>
+#include <mutex>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "tiemr.h"
 
@@ -20,6 +22,10 @@ std::atomic_int64_t s_connectionFailedNum{0};
 std::atomic_int64_t s_sumDuration{0};
 std::string         s_randomData;
 
+std::mutex            s_mtx;
+std::vector<uint64_t> s_queue;
+
+void PushTime(uint64_t time);
 void RegisterAndRun();
 bool ParseInt(std::string const& src, int& dst);
 bool ParseConfig(int argc, char** argv);
@@ -59,7 +65,9 @@ struct EchoClient
       // 如果所有回声数据接收完毕
       if (ctx.text == s_randomData)
       {
-         s_sumDuration += ctx.timer.Stop("echo expand");
+         auto tt = ctx.timer.Stop("echo expand");
+         s_sumDuration += tt;
+         PushTime(tt);
          conn->forceClose();
       }
    }
@@ -84,6 +92,8 @@ int main(int argc, char** argv)
    std::cout << "all echo sync:\nsum:" << s_sumDuration << "us\naverage:"
              << s_sumDuration / (s_numConnection - s_connectionFailedNum)
              << "us\n";
+   std::sort(s_queue.begin(), s_queue.end());
+   std::cout << "p99:" << s_queue[s_queue.size() * 0.99] << "us\n";
    std::cout << "all echo async:\n";
    auto sum = tm.Stop("sum:");
    std::cout << "average:" << sum / (s_numConnection - s_connectionFailedNum)
@@ -140,4 +150,10 @@ bool ParseConfig(int argc, char** argv)
    return ParseInt(argv[1], s_port) && ParseInt(argv[2], s_numThread) &&
           ParseInt(argv[3], s_numConnection) &&
           ParseInt(argv[4], s_numRandomData);
+}
+
+void PushTime(uint64_t time)
+{
+   std::lock_guard<std::mutex> lock(s_mtx);
+   s_queue.push_back(time);
 }
