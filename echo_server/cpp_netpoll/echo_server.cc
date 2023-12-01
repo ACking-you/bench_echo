@@ -7,8 +7,9 @@ struct server
 
 int main()
 {
-   auto loop     = netpoll::NewEventLoop(2);
+   auto loop = netpoll::NewEventLoop(std::thread::hardware_concurrency() + 1);
    auto listener = netpoll::tcp::Listener::New({7777});
-   listener->bind<server>();
+   listener.enableKickoffIdle(5);
+   listener.bind<server>();
    loop.serve(listener);
 }

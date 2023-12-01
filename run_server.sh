@@ -16,7 +16,14 @@ case $1 in
   "asio")
     echo "Starting the asio on port 8888..."
     cd build/echo_server/cpp_asio&&./asio_echo_server
-    # 执行重启服务的命令
+    ;;
+  "rust-tokio")
+    echo "Starting the rust-tokio on port 11111..."
+    cd build/echo_server/rust_tokio_monoio&&cargo +nightly run --bin tokio_echo --release
+    ;;
+  "rust-monoio")
+    echo "Starting the rust-monoio on port 22222..."
+    cd build/echo_server/rust_tokio_monoio&&cargo +nightly run --bin monoio_echo --release
     ;;
   *)
     echo "Unknown command: $1"

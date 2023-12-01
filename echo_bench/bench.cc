@@ -123,13 +123,13 @@ void RegisterAndRun()
 {
    auto loop = netpoll::NewEventLoop(s_numThread);
    loop.enableQuit();
-   std::vector<netpoll::tcp::DialerPtr> dialers;
+   std::vector<netpoll::tcp::Dialer> dialers;
    for (int i = 0; i < s_numConnection; i++)
    {
       auto dialer =
         netpoll::tcp::Dialer::New({"127.0.0.1", static_cast<uint16_t>(s_port)});
-      dialer->bind<EchoClient>();
-      dialers.push_back(dialer);
+      dialer.bind<EchoClient>();
+      dialers.push_back(std::move(dialer));
    }
    loop.serve(dialers);
 }

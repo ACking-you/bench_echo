@@ -35,7 +35,7 @@ private:
    }
 
    tcp::socket socket_;
-   enum { max_length = 1024 };
+   enum { max_length = 16384 };
    char data_[max_length];
 };
 

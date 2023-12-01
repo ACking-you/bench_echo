@@ -1,0 +1,27 @@
+[package]
+name = "echo_test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+monoio = { version = "0.1.9", default-features = false, features = [
+    "async-cancel",
+    "sync",
+    "bytes",
+    "iouring",
+    "legacy",
+    "macros",
+    "utils",
+] }
+
+tokio = { version = "1.33.0", features = ["full"] }
+
+[[bin]]
+name = "monoio_echo"
+path = "src/monoio_echo.rs"
+
+[[bin]]
+name = "tokio_echo"
+path = "src/tokio_echo.rs"

@@ -21,10 +21,12 @@ public:
           .count();
       auto   duration = end - start;        // 以微秒为单位
       double ms       = duration * 0.001;   // 得到毫秒
-      printf("%s: %ld us (%lf ms)\n", description, duration, ms);
+      printf("%s: %ld us (%lf ms)\n", description, duration, ms);   // NOLINT
       fflush(stdout);
       return duration;
    }
+
+   void add() {}
 
 private:
    std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTimepoint;
