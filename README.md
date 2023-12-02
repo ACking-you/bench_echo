@@ -6,18 +6,51 @@
 
 本项目已经进行了最新的测试，但是测试数据还并未更新，测试初步结论：
 环境：OS:ubuntu22.04 CPU:R7 7700
-- 小数据量的情况下(<4k): avg netpoll-go(10000conn per 84ms)表现最差 rust-tokio(10000 conn per 33ms)表现最好,p99 netpoll-go(10000conn per 124ms)表现最差 rust-tokio(10000conn per 2.2ms)表现最好。此时 netpoll-cpp avg(10000 conn per 57.8ms) p99(10000conn per 63.2ms)
-- 稍大数据量情况下(>=4*40k)：avg rust-monoio(10000conn per 2495ms)表现最差 rust-tokio(10000conn per 498ms)表现最好,p99 rust-monoio(10000conn per 2790ms)表现最差 rust-tokio(10000conn per 106ms)表现最好。此时 netpoll-cpp avg(10000conn per 1000ms) p99(10000conn per 1221ms)
+- 小数据量的情况下(<4k): 
+  - avg:
+    - netpoll-go(10000conn per 84ms) 表现最差 
+    - rust-tokio(10000conn per 33ms) 表现最好
+  - p99:
+    - netpoll-go(10000conn per 124ms) 表现最差 
+    - rust-tokio(10000conn per 2.2ms) 表现最好
+  - 与此同时 netpoll-cpp:
+    - avg(10000conn per 57.8ms) 
+    - p99(10000conn per 63.2ms)
+- 稍大数据量情况下(>=4*40k)：
+  - avg:
+    - rust-monoio(10000conn per 2495ms) 表现最差
+    - rust-tokio(10000conn per 498ms) 表现最好
+  - p99:
+    - rust-monoio(10000conn per 2790ms) 表现最差
+    - rust-tokio(10000conn per 106ms) 表现最好
+  - 与此同时 netpoll-cpp:
+    - avg(10000conn per 1000ms) 
+    - p99(10000conn per 1221ms)
 
-经过了连续几十轮10~10000连接1k~1m的发送数据的轮番轰炸，此时查看各个进程的内存的使用情况为：
-VIRT: netpoll-go(6330M) >> netpoll-cpp(1618M) > rust-tokio(1158M) > asio(462M) > rust-monoio(71M)
-RES: netpoll-cpp(811M) > netpoll-go(524M) > asio(304M) > rust-tokio(101M) > rust-monoio(56M)
+经过了连续几十轮 10~10000 连接 1k~1m 的发送数据的轮番轰炸，此时查看各个进程的内存的使用情况为：
+- VIRT(lower is better):
+  - netpoll-go(6330M)
+  - netpoll-cpp(1618M)
+  - rust-tokio(1158M)
+  - asio(462M) 
+  - rust-monoio(71M)
+- RES(lower is better): 
+  - netpoll-cpp(811M) 
+  - netpoll-go(524M) 
+  - asio(304M) 
+  - rust-tokio(101M) 
+  - rust-monoio(56M)
 
-上面的语言中go语言是带gc的语言，VIRT占用很大是可以理解的，RES反而占用不是很大，这说明一方面说明go的gc策略对内存释放是比较积极的，另一方面说明netpoll框架的buffer的重用设计的很好。这点在空闲十几分钟后可以得到验证（RES降到155M）
+从语言的角度考虑 go 是带 gc 的语言，VIRT 占用很大是可以理解的， RES 反而占用不是很大，这一方面说明 go 的 gc 策略对内存释放是比较积极的，另一方面说明 netpoll 框架的 buffer 的内存重用以及使用量都比较少。这点在空闲十几分钟后可以得到验证（RES 降到 155M）
 
-相对而言其他库均在空闲后RES无明显变化，有可能是内存分配器的策略导致的。而在这其中 monoio 的内存 RES 是最优的，这说明该库的buffer内存使用量可能比较少，或者是每次都能动态调整到合适的大小。后面不断尝试新的测试，RES也没有再继续升高，故RES不降低的原因应该是都使用了同样的内存分配器glibc。而具体的RES的差异估计是因为各个框架每次连接使用的buffer策略不同，比如我这个库使用的buffer策略读buffer最低都是8kb。
+相对而言其他库均在空闲后 RES 无明显变化，有可能是内存分配器的策略导致的。
+
+而在这其中 monoio 的内存 RES 是最优的，这说明该库的 buffer 内存使用量可能比较少，或者是每次都能动态调整到合适的大小。
+
+后面不断进行新的 benchmar，RES 也没有再继续升高，故 RES 不降低的原因应该是都使用了系统默认的内存分配器 glibc。而具体的 RES 的差异估计是因为各个框架每次连接使用的 buffer 策略不同，比如我这个库使用的策略下每次读 buffer 最低都是 8kb+。
 
 根据上面对内存使用量的分析也不难推测出不同框架 `avg` 和 `p99` 的结果的产生原因。
+
 在稍大数据量情况下表现最差的 `monoio` 应该就是由于节省了buffer的内存(56M)。
 而 `tokio` 在小和大的数据量情况下都表现优异，只能说 `tokio` 真的 nb！
 ## 运行
