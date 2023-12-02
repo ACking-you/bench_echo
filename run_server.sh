@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ $# -eq 0 ]; then
-  echo "Usage: $0 <netpoll-cpp|netpoll-go|asio>"
+  echo "Usage: $0 <netpoll-cpp|netpoll-go|asio|rust-tokio|rust-monoio>"
   exit 1
 fi
 
@@ -19,11 +19,11 @@ case $1 in
     ;;
   "rust-tokio")
     echo "Starting the rust-tokio on port 11111..."
-    cd build/echo_server/rust_tokio_monoio&&cargo +nightly run --bin tokio_echo --release
+    cd echo_server/rust_tokio_monoio&&cargo +nightly run --bin tokio_echo --release
     ;;
   "rust-monoio")
     echo "Starting the rust-monoio on port 22222..."
-    cd build/echo_server/rust_tokio_monoio&&cargo +nightly run --bin monoio_echo --release
+    cd echo_server/rust_tokio_monoio&&cargo +nightly run --bin monoio_echo --release
     ;;
   *)
     echo "Unknown command: $1"

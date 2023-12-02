@@ -2,8 +2,24 @@
 
 这是一个用于测试 tcp echo服务的脚本,可以计算出每个连接进行一次echo服务的延迟,同样也可用该数据计算出吞吐量.
 
-本项目用来测试 [netpoll](https://www.cloudwego.io/zh/docs/netpoll/)/[netpoll-cpp](https://github.com/ACking-you/netpoll-cpp)/[asio](https://www.boost.org/doc/libs/1_82_0/doc/html/boost_asio.html) 三个网络库的echo服务的性能.
+本项目用来测试 [netpoll](https://www.cloudwego.io/zh/docs/netpoll/)/[netpoll-cpp](https://github.com/ACking-you/netpoll-cpp)/[asio](https://www.boost.org/doc/libs/1_82_0/doc/html/boost_asio.html)/[rust-tokio](https://docs.rs/tokio/latest/tokio/)/[rust-monoio](https://docs.rs/monoio/latest/monoio/) 五个网络库的echo服务的性能.
 
+本项目已经进行了最新的测试，但是测试数据还并未更新，测试初步结论：
+环境：OS:ubuntu22.04 CPU:R7 7700
+- 小数据量的情况下(<4k): avg netpoll-go(10000conn per 84ms)表现最差 rust-tokio(10000 conn per 33ms)表现最好,p99 netpoll-go(10000conn per 124ms)表现最差 rust-tokio(10000conn per 2.2ms)表现最好。此时 netpoll-cpp avg(10000 conn per 57.8ms) p99(10000conn per 63.2ms)
+- 稍大数据量情况下(>=4*40k)：avg rust-monoio(10000conn per 2495ms)表现最差 rust-tokio(10000conn per 498ms)表现最好,p99 rust-monoio(10000conn per 2790ms)表现最差 rust-tokio(10000conn per 106ms)表现最好。此时 netpoll-cpp avg(10000conn per 1000ms) p99(10000conn per 1221ms)
+
+经过了连续几十轮10~10000连接1k~1m的发送数据的轮番轰炸，此时查看各个进程的内存的使用情况为：
+VIRT: netpoll-go(6330M) >> netpoll-cpp(1618M) > rust-tokio(1158M) > asio(462M) > rust-monoio(71M)
+RES: netpoll-cpp(811M) > netpoll-go(524M) > asio(304M) > rust-tokio(101M) > rust-monoio(56M)
+
+上面的语言中go语言是带gc的语言，VIRT占用很大是可以理解的，RES反而占用不是很大，这说明一方面说明go的gc策略对内存释放是比较积极的，另一方面说明netpoll框架的buffer的重用设计的很好。这点在空闲十几分钟后可以得到验证（RES降到155M）
+
+相对而言其他库均在空闲后RES无明显变化，有可能是内存分配器的策略导致的。而在这其中 monoio 的内存 RES 是最优的，这说明该库的buffer内存使用量可能比较少，或者是每次都能动态调整到合适的大小。后面不断尝试新的测试，RES也没有再继续升高，故RES不降低的原因应该是都使用了同样的内存分配器glibc。而具体的RES的差异估计是因为各个框架每次连接使用的buffer策略不同，比如我这个库使用的buffer策略读buffer最低都是8kb。
+
+根据上面对内存使用量的分析也不难推测出不同框架 `avg` 和 `p99` 的结果的产生原因。
+在稍大数据量情况下表现最差的 `monoio` 应该就是由于节省了buffer的内存(56M)。
+而 `tokio` 在小和大的数据量情况下都表现优异，只能说 `tokio` 真的 nb！
 ## 运行
 
 测试需要的运行环境如下:
@@ -12,12 +28,14 @@
 * 请自行编译下载好 asio 库.
 * cmake(3.14及以上)和makefile和g++编译器.
 * go语言编译器.
+* rust语言编译器(需要nightly版本).
 
 想要运行测试只需要执行对应的下列脚本:
 
-* `build.sh` :用于编译用于测试的客户端脚本以及对应的 `netpoll/netpoll-cpp/asio` echo服务端.
-* `run_bench.sh` :用于测试本地对应端口的echo服务,需要传入四个参数,分别是 `端口/线程数/连接数/随机发送的数据长度` ,运行脚本有相应的提示.
-* `run_server.sh` :用于启动对应的echo服务,需要传入一个参数,这是需要启动的服务,共有 `netpoll-go/netpoll-cpp/asio` 这三个服务,分别占用 `9999/7777/8888` 三个端口.
+* `build.sh` :用于编译用于测试的客户端脚本以及对应的 `netpoll/netpoll-cpp/asio/rust-tokio/rust-monoio` echo服务端.
+* `run_bench.sh` :用于测试本地对应端口的echo服务,需要传入四个参数,分别是 `端口/线程数/连接数/随机发送的数据长度/需要测试的内容(avg_p99等)` ,运行脚本有相应的提示.
+* `run_server.sh` :用于启动对应的echo服务,需要传入一个参数,这是需要启动的服务,共有 `netpoll-cpp/asio/netpoll-go/rust-tokio/rust-monoio` 这五个服务,分别占用 `7777/8888/9999/11111/22222` 五个端口.
+* `run_all_bench.sh`: 用于测试所有的server，请自行先运行好对应的server：`7777/8888/9999/11111/22222`
 
 执行顺序如下:
 

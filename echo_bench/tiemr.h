@@ -3,31 +3,51 @@
 #include <chrono>
 #include <iostream>
 
-class Timer
+class Metrics
 {
 public:
-   Timer() { m_StartTimepoint = std::chrono::high_resolution_clock::now(); }
-
-   long long Stop(const char* description)
+   using time_point_t = std::chrono::steady_clock::time_point;
+   using duration_t   = std::chrono::steady_clock::duration;
+   Metrics()
+     : current_time_(std::chrono::steady_clock::now()),
+       duration_(std::chrono::steady_clock::duration::zero())
    {
-      auto endTimepoint = std::chrono::high_resolution_clock::now();
-      auto start = std::chrono::time_point_cast<std::chrono::microseconds>(
-                     m_StartTimepoint)
-                     .time_since_epoch()
-                     .count();
-      auto end =
-        std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint)
-          .time_since_epoch()
-          .count();
-      auto   duration = end - start;        // 以微秒为单位
-      double ms       = duration * 0.001;   // 得到毫秒
-      printf("%s: %ld us (%lf ms)\n", description, duration, ms);   // NOLINT
-      fflush(stdout);
-      return duration;
    }
 
-   void add() {}
+   duration_t get_duration() { return duration_; }
+
+   void print_duration(const char* description)
+   {
+      std::cout << description << duration_.count() << std::endl;
+   }
+
+   class ClockGuard
+   {
+   private:
+      Metrics& metrics;
+
+   public:
+      ClockGuard(Metrics& m) : metrics(m) { metrics.start(); }
+
+      ~ClockGuard() { metrics.end(); }
+   };
+
+   ClockGuard clock_guard() { return {*this}; }
+
+   time_point_t start()
+   {
+      current_time_ = std::chrono::steady_clock::now();
+      return current_time_;
+   }
+
+   time_point_t end()
+   {
+      auto end_time = std::chrono::steady_clock::now();
+      duration_ += end_time - current_time_;
+      return end_time;
+   }
 
 private:
-   std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTimepoint;
+   time_point_t current_time_;
+   duration_t   duration_;
 };
